@@ -1,0 +1,26 @@
+:root {}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  min-height: 100vh;
+}
+
+body {
+  background: rgb(6, 50, 211);
+  background: linear-gradient(135deg, rgba(6, 50, 211, 1) 0%, rgba(81, 10, 144, 1) 28%, rgba(0, 212, 255, 1) 100%);
+}
+
+a {
+  text-decoration: none;
+}
+
+.white-text {
+  color: white;
+}
