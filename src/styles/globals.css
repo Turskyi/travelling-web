@@ -14,7 +14,7 @@ body {
 
 body {
   background: rgb(6, 50, 211);
-  background: linear-gradient(135deg, rgba(6, 50, 211, 1) 0%, rgba(81, 10, 144, 1) 28%, rgba(0, 212, 255, 1) 100%);
+  background: linear-gradient(135deg, rgba(6, 50, 211, 1) 0%, rgba(81, 10, 144, 1) 40%, rgba(0, 212, 255, 1) 140%);
 }
 
 a {

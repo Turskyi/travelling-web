@@ -1,0 +1,31 @@
+.entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    min-width: 210px;
+    min-height: 260px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border-radius: 16px;
+    padding: .5rem;
+    width: 100%;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.countryName {
+    max-height: 2em; /* Set the maximum height in em or px */
+    min-height: 1.3em; /* Set the maximum height in em or px */
+    max-width: 7.5em; /* Set the maximum height in em or px */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Display an ellipsis (...) to indicate text overflow */
+    white-space: nowrap; /* Prevent the text from wrapping to the next line */
+  }
