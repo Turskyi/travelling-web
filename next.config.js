@@ -10,9 +10,13 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
-      }
-    ]
-  }
-}
+      },
+      {
+        protocol: 'https',
+        hostname: 'play.google.com',
+      },
+    ],
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
