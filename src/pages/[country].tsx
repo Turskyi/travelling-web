@@ -9,10 +9,12 @@ export default function CountryDetailsPage() {
     const router = useRouter();
     const countryName = router.query.country?.toString() || '';
     const { country, countryLoading } = useCountry(countryName);
+    const titleText = country ? `${country.name.official} | Travelling` : 'Travelling';
+
     return (
         <>
             <Head>
-                {country && <title>{`${country.name.official}`}</title>}
+                <title>{titleText}</title>
             </Head>
             <div className='d-flex flex-column align-items-center'>
                 <p className="text-white fs-3"><Link href="/" className="link-light">← Back.</Link></p>

@@ -9,14 +9,14 @@ type PolicyPageProps = {
 };
 
 export default function PolicyPage({ title, children }: PolicyPageProps) {
+  const pageTitle = `${title} | Travelling`;
+  const metaDescription = `${title} for the Travelling app and website.`;
+
   return (
     <>
       <Head>
-        <title>{title} | Travelling</title>
-        <meta
-          name="description"
-          content={`${title} for the Travelling app and website.`}
-        />
+        <title>{pageTitle}</title>
+        <meta name="description" content={metaDescription} />
         <meta name="robots" content="index, follow" />
       </Head>
       <div className={styles.page}>

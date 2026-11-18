@@ -11,7 +11,6 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
         <Head>
-        <title>Travelling</title>
         <meta name="description" content="A web application to help collect all countries that you have visited." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
