@@ -43,8 +43,10 @@ export async function verifyAuthToken(
   const token = authHeader.split('Bearer ')[1];
   const app = getFirebaseAdmin();
   try {
-    return await app.auth().verifyIdToken(token);
+    const decoded = await app.auth().verifyIdToken(token);
+    return decoded;
   } catch (err) {
-    throw new Error('Unauthorized: Invalid or expired Firebase ID token');
+    console.error('verifyAuthToken verification failed:', err);
+    throw new Error(`Unauthorized: Invalid or expired Firebase ID token (${err instanceof Error ? err.message : String(err)})`);
   }
 }

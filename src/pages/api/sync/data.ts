@@ -108,6 +108,8 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return res.status(500).json({ error: message, stack: error instanceof Error ? error.stack : undefined });
+    console.error('API /api/sync/data error:', error);
+    const status = message.includes('Unauthorized') ? 401 : 500;
+    return res.status(status).json({ error: message, stack: error instanceof Error ? error.stack : undefined });
   }
 }
