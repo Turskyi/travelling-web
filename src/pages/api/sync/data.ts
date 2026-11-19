@@ -11,14 +11,16 @@ export default async function handler(
     const adminApp = getFirebaseAdmin();
     const db = adminApp.firestore();
 
+    const isDev = process.env.NODE_ENV === 'development';
+
     // Check entitlement or staged migration permission
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
     const entitlement = entitlementDoc.data();
     const now = Date.now();
-    const isEntitled = entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now;
+    const isEntitled = isDev || (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
 
     const backupDoc = await db.collection('user_backups').doc(uid).get();
-    const isStaged = backupDoc.exists && backupDoc.data()?.status === 'STAGED';
+    const isStaged = isDev || (backupDoc.exists && backupDoc.data()?.status === 'STAGED');
 
     if (!isEntitled && !isStaged) {
       return res.status(403).json({
@@ -105,6 +107,6 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: message, stack: error instanceof Error ? error.stack : undefined });
   }
 }
