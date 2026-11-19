@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirebaseAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
+import { isAdminUser } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,6 +14,18 @@ export default async function handler(
     const decodedToken = await verifyAuthToken(req);
     const uid = decodedToken.uid;
     const db = getFirebaseAdmin().firestore();
+
+    const isAdmin = isAdminUser(decodedToken);
+    if (isAdmin) {
+      const backupDoc = await db.collection('user_backups').doc(uid).get();
+      return res.status(200).json({
+        active: true,
+        expiryTimeMs: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        state: 'SUBSCRIPTION_STATE_ACTIVE',
+        hasBackup: backupDoc.exists,
+        backupStatus: backupDoc.data()?.status || 'CONFIRMED',
+      });
+    }
 
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
 

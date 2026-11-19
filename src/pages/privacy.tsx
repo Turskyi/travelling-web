@@ -84,8 +84,8 @@ export default function PrivacyPolicy() {
         <h2>6. Contact</h2>
         <p>
           For privacy questions or deletion requests, email{' '}
-          <a href="mailto:dmitriy.turskyi@gmail.com">
-            dmitriy.turskiy@gmail.com
+          <a href="mailto:dmytro@turskyi.com">
+            dmytro@turskyi.com
           </a>
           .
         </p>

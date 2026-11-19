@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirebaseAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
+import { isAdminUser } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,16 +12,16 @@ export default async function handler(
     const adminApp = getFirebaseAdmin();
     const db = adminApp.firestore();
 
-    const isDev = process.env.NODE_ENV === 'development';
+    const isAdmin = isAdminUser(decodedToken);
 
     // Check entitlement or staged migration permission
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
     const entitlement = entitlementDoc.data();
     const now = Date.now();
-    const isEntitled = isDev || (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
+    const isEntitled = isAdmin || (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
 
     const backupDoc = await db.collection('user_backups').doc(uid).get();
-    const isStaged = isDev || (backupDoc.exists && backupDoc.data()?.status === 'STAGED');
+    const isStaged = isAdmin || (backupDoc.exists && backupDoc.data()?.status === 'STAGED');
 
     if (!isEntitled && !isStaged) {
       return res.status(403).json({
