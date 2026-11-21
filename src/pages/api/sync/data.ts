@@ -18,7 +18,11 @@ export default async function handler(
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
     const entitlement = entitlementDoc.data();
     const now = Date.now();
+
+    // Temporary free access flag: defaults to true unless FREE_ACCESS_FOR_ALL is explicitly set to "false" on Vercel
+    const freeAccessForall = process.env.FREE_ACCESS_FOR_ALL !== 'false';
     const isEntitled =
+      freeAccessForall ||
       isAdmin ||
       (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
 
@@ -46,12 +50,9 @@ export default async function handler(
       const { countries = [], cities = [] } = req.body;
 
       if (!Array.isArray(countries) || !Array.isArray(cities)) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'Invalid payload shape: countries and cities must be arrays.',
-          });
+        return res.status(400).json({
+          error: 'Invalid payload shape: countries and cities must be arrays.',
+        });
       }
 
       if (countries.length > 500 || cities.length > 5000) {
@@ -77,7 +78,7 @@ export default async function handler(
         { merge: true },
       );
 
-      // 2. Write to users/{uid}/visited_countries (with id as Number for TravellingPro VisitedCountryEntity compatibility)
+      // 2. Write to users/{uid}/visited_countries (deduplicated by normalized country name as doc ID)
       countries.forEach((country: any) => {
         const countryName = country.name || country.title;
         if (!countryName) return;
@@ -153,11 +154,9 @@ export default async function handler(
       error instanceof Error ? error.message : 'Internal Server Error';
     console.error('API /api/sync/data error:', error);
     const status = message.includes('Unauthorized') ? 401 : 500;
-    return res
-      .status(status)
-      .json({
-        error: message,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+    return res.status(status).json({
+      error: message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
