@@ -46,9 +46,12 @@ export default async function handler(
       const { countries = [], cities = [] } = req.body;
 
       if (!Array.isArray(countries) || !Array.isArray(cities)) {
-        return res.status(400).json({
-          error: 'Invalid payload shape: countries and cities must be arrays.',
-        });
+        return res
+          .status(400)
+          .json({
+            error:
+              'Invalid payload shape: countries and cities must be arrays.',
+          });
       }
 
       if (countries.length > 500 || cities.length > 5000) {
@@ -74,7 +77,7 @@ export default async function handler(
         { merge: true },
       );
 
-      // 2. Write to users/{uid}/visited_countries (deduplicated by normalized country name as doc ID)
+      // 2. Write to users/{uid}/visited_countries (with id as Number for TravellingPro VisitedCountryEntity compatibility)
       countries.forEach((country: any) => {
         const countryName = country.name || country.title;
         if (!countryName) return;
@@ -87,7 +90,7 @@ export default async function handler(
           .doc(docId);
 
         const countryData = {
-          id: country.id || docId,
+          id: Number(country.id) || 0,
           title: countryName,
           shortName: country.shortName || countryName,
           flag: country.flag || '',
@@ -99,7 +102,7 @@ export default async function handler(
         batch.set(userCountryRef, countryData, { merge: true });
       });
 
-      // 3. Write to users/{uid}/cities (with id and parentId as Strings for TravellingPro compatibility)
+      // 3. Write to users/{uid}/cities (with id and parentId as Numbers for TravellingPro CityEntity compatibility)
       cities.forEach((city: any) => {
         if (!city.id) return;
         const cityId = String(city.id);
@@ -107,8 +110,8 @@ export default async function handler(
 
         const cityData = {
           ...city,
-          id: String(city.id),
-          parentId: String(city.parentId),
+          id: Number(city.id) || 0,
+          parentId: Number(city.parentId) || 0,
           updatedAt: now,
         };
 
@@ -150,9 +153,11 @@ export default async function handler(
       error instanceof Error ? error.message : 'Internal Server Error';
     console.error('API /api/sync/data error:', error);
     const status = message.includes('Unauthorized') ? 401 : 500;
-    return res.status(status).json({
-      error: message,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    return res
+      .status(status)
+      .json({
+        error: message,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
   }
 }
