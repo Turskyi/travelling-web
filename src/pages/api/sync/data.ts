@@ -19,8 +19,8 @@ export default async function handler(
     const entitlement = entitlementDoc.data();
     const now = Date.now();
 
-    // Temporary free access flag: defaults to true unless FREE_ACCESS_FOR_ALL is explicitly set to "false" on Vercel
-    const freeAccessForall = process.env.FREE_ACCESS_FOR_ALL !== 'false';
+    // Temporary free access must be explicitly enabled; subscriptions are otherwise required.
+    const freeAccessForall = process.env.FREE_ACCESS_FOR_ALL === 'true';
     const isEntitled =
       freeAccessForall ||
       isAdmin ||

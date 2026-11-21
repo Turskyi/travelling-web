@@ -4,32 +4,24 @@
 
 # Travelling
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with
-[`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+Travelling is a responsive Next.js 14 and TypeScript travel tracker. Visitors can
+browse countries, search and filter the list, mark countries as visited, and add,
+edit, or remove cities without creating an account. Travel history and the
+English/Ukrainian language selection are stored in the current browser.
 
-## PROJECT SPECIFICATION
-
-• Programming language: [TypeScript](https://www.typescriptlang.org);
-
-• SDK: [Next JS](https://nextjs.org);
-
-• Version control system: [Git](https://git-scm.com);
-
-• Git Hosting Service: [GitHub](https://github.com);
-
-• CI/CD: [Vercel](https://vercel.com/features/previews) is used to
-deliver the new releases to the production environment after every push to the
-**master** branch;
-
-• Api: https://restcountries.com/;
-
-• Architectural pattern:
-[Monolith](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures#all-in-one-applications);
+The country catalogue and country details use the Android app's
+[mledoze/countries](https://github.com/mledoze/countries) source through a
+cached same-origin Next.js API route. The former REST Countries v3 endpoint
+is deprecated and now returns an error, so the web app no longer relies on it.
+Firebase authentication,
+cloud sync and Google Play subscription API routes remain available for the
+account and migration features; local travel tracking does not depend on these
+services. Cloud backup is separate from local browser storage.
 
 ## Getting Started
 
-To run this project locally, you must have Node.js on your machine.
-First, run the development server:
+Use Node.js 22 and install dependencies with `npm install`. The local tracker
+can be used without Firebase credentials:
 
 ```bash
 npm run dev
@@ -38,18 +30,35 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see
 the result.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are
-treated as [API routes](https://nextjs.org/docs/api-routes/introduction)
-instead of React pages.
+The country tracker and city editor run locally without an account. The
+`/account` page provides Google sign-in, subscription and staged-migration
+status, and explicit backup/restore actions. Differences between local and
+cloud histories are shown before either copy is selected. The
+`src/pages/api` directory contains the existing authenticated Firebase,
+subscription, account-deletion, and sync/migration endpoints. To enable those
+server features, configure the following environment variables in the local
+environment or deployment platform:
 
-This project uses
-[`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to
-automatically optimize and load `Indie_Flower`, a custom Google Font.
+- `NEXT_PUBLIC_FIREBASE_API_KEY` is required for browser Firebase sign-in.
+  `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`,
+  and `NEXT_PUBLIC_FIREBASE_APP_ID` can also be set for the Firebase app
+  configuration.
+- `FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON` (or the existing
+  `FIREBASE_SERVICE_ACCOUNT_JSON` alias) is the server-only Firebase Admin
+  service account JSON.
+- `PLAY_SERVICE_ACCOUNT_JSON` is the server-only Google Play Developer API
+  service account JSON used to verify subscriptions.
+- `PUBSUB_VERIFICATION_TOKEN` optionally verifies subscription RTDN requests.
+- `CRON_SECRET` is required to authorize the scheduled cleanup endpoint.
+- `FREE_ACCESS_FOR_ALL` controls the existing temporary sync-access setting.
+  It is disabled by default; set it to `true` only when intentionally granting
+  temporary sync access to all authenticated users.
 
-• **Code Readability:** code is easily readable with no unnecessary blank
-lines, no unused variables or methods, and no commented-out code, all
-variables, methods, and resource IDs are descriptively named such that another
-developer reading the code can easily understand their function.
+Do not commit credentials or expose server-only service account values through
+`NEXT_PUBLIC_` variables. No new environment variables are required for local
+country tracking.
+
+Run `npm run lint`, `npx tsc --noEmit`, and `npm run build` to validate changes.
 
 ## Credits
 

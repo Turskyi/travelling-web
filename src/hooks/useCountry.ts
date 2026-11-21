@@ -3,7 +3,7 @@ import * as CountryApi from '@/network/country-api'
 import { AxiosError } from "axios";
 
 export default function useCountry(name: string) {
-    const { data, isLoading } = useSWR(name, async () => {
+    const { data, error, isLoading } = useSWR(name ? `country:${name}` : null, async () => {
         try {
             return await CountryApi.getCountry(name);
         } catch (error) {
@@ -18,5 +18,6 @@ export default function useCountry(name: string) {
     return {
         country: data,
         countryLoading: isLoading,
+        countryError: error,
     }
 }

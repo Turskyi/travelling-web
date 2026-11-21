@@ -4,14 +4,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travelling-the-countries';
 
-if (typeof window !== 'undefined' && !apiKey) {
-  throw new Error(
-    'Missing required Firebase public environment variables: NEXT_PUBLIC_FIREBASE_API_KEY.'
-  );
-}
-
 const firebaseConfig = {
-  apiKey: apiKey || 'AIzaSyDummyKeyForBuildOnly',
+  apiKey: apiKey || '',
   authDomain: `${projectId}.firebaseapp.com`,
   projectId,
   storageBucket: `${projectId}.appspot.com`,
