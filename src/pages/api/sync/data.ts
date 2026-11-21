@@ -61,6 +61,27 @@ export default async function handler(
 
       const batch = db.batch();
 
+      // 0. Delete countries in Firestore that were removed locally
+      const existingCountriesSnap = await userRef
+        .collection('visited_countries')
+        .get();
+      const incomingCountryIds = new Set(
+        countries
+          .map((c: any) =>
+            String(c.name || c.title || '')
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '_'),
+          )
+          .filter(Boolean),
+      );
+
+      existingCountriesSnap.docs.forEach((doc) => {
+        if (!incomingCountryIds.has(doc.id)) {
+          batch.delete(doc.ref);
+        }
+      });
+
       // 1. Update user profile document with counter and metadata for social network
       const visitedCount = countries.filter(
         (c) => c.isVisited !== false,
