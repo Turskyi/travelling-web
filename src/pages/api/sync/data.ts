@@ -4,7 +4,7 @@ import { isAdminUser } from '@/lib/adminAuth';
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   try {
     const decodedToken = await verifyAuthToken(req);
@@ -18,22 +18,23 @@ export default async function handler(
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
     const entitlement = entitlementDoc.data();
     const now = Date.now();
-    const isEntitled = isAdmin || (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
+    const isEntitled =
+      isAdmin ||
+      (entitlement?.active === true && (entitlement.expiryTimeMs || 0) > now);
 
-    const backupDoc = await db.collection('user_backups').doc(uid).get();
-    const isStaged = isAdmin || (backupDoc.exists && backupDoc.data()?.status === 'STAGED');
+    const userRef = db.collection('users').doc(uid);
+    const isStaged =
+      isAdmin || (await userRef.collection('visited_countries').get()).size > 0;
 
     if (!isEntitled && !isStaged) {
       return res.status(403).json({
-        error: 'Active subscription or staged migration authorization required.',
+        error: 'Active subscription or migration authorization required.',
       });
     }
 
-    const backupRef = db.collection('user_backups').doc(uid);
-
     if (req.method === 'GET') {
-      const countriesSnap = await backupRef.collection('countries').get();
-      const citiesSnap = await backupRef.collection('cities').get();
+      const countriesSnap = await userRef.collection('visited_countries').get();
+      const citiesSnap = await userRef.collection('cities').get();
 
       const countries = countriesSnap.docs.map((doc) => doc.data());
       const cities = citiesSnap.docs.map((doc) => doc.data());
@@ -45,7 +46,12 @@ export default async function handler(
       const { countries = [], cities = [] } = req.body;
 
       if (!Array.isArray(countries) || !Array.isArray(cities)) {
-        return res.status(400).json({ error: 'Invalid payload shape: countries and cities must be arrays.' });
+        return res
+          .status(400)
+          .json({
+            error:
+              'Invalid payload shape: countries and cities must be arrays.',
+          });
       }
 
       if (countries.length > 500 || cities.length > 5000) {
@@ -54,42 +60,72 @@ export default async function handler(
 
       const batch = db.batch();
 
+      // 1. Update user profile document with counter and metadata for social network
+      const visitedCount = countries.filter(
+        (c) => c.isVisited !== false,
+      ).length;
+      batch.set(
+        userRef,
+        {
+          id: uid,
+          name: decodedToken.name || decodedToken.email || 'Traveller',
+          avatar: decodedToken.picture || '',
+          counter: visitedCount,
+          isVisible: true,
+          updatedAt: now,
+        },
+        { merge: true },
+      );
+
+      // 2. Write to users/{uid}/visited_countries
       countries.forEach((country: any) => {
         if (!country.id) return;
-        const countryRef = backupRef.collection('countries').doc(String(country.id));
-        batch.set(
-          countryRef,
-          {
-            ...country,
-            updatedAt: now,
-          },
-          { merge: true }
-        );
+        const countryId = String(country.id);
+        const userCountryRef = userRef
+          .collection('visited_countries')
+          .doc(countryId);
+
+        const countryData = {
+          id: country.id,
+          title: country.name || country.title || '',
+          shortName: country.shortName || country.name || '',
+          flag: country.flag || '',
+          isVisited: country.isVisited !== false,
+          selfie: country.selfie || '',
+          updatedAt: now,
+        };
+
+        batch.set(userCountryRef, countryData, { merge: true });
       });
 
+      // 3. Write to users/{uid}/cities
       cities.forEach((city: any) => {
         if (!city.id) return;
-        const cityRef = backupRef.collection('cities').doc(String(city.id));
-        batch.set(
-          cityRef,
-          {
-            ...city,
-            updatedAt: now,
-          },
-          { merge: true }
-        );
+        const cityId = String(city.id);
+        const userCityRef = userRef.collection('cities').doc(cityId);
+
+        const cityData = {
+          ...city,
+          updatedAt: now,
+        };
+
+        batch.set(userCityRef, cityData, { merge: true });
       });
 
       await batch.commit();
 
-      const updatedCountriesSnap = await backupRef.collection('countries').get();
-      const updatedCitiesSnap = await backupRef.collection('cities').get();
+      const updatedCountriesSnap = await userRef
+        .collection('visited_countries')
+        .get();
+      const updatedCitiesSnap = await userRef.collection('cities').get();
 
       // Count uploaded selfies in storage for verification count
       let serverSelfieCount = 0;
       try {
         const bucket = adminApp.storage().bucket();
-        const [files] = await bucket.getFiles({ prefix: `cloud_sync/selfies/${uid}/` });
+        const [files] = await bucket.getFiles({
+          prefix: `cloud_sync/selfies/${uid}/`,
+        });
         serverSelfieCount = files.length;
       } catch (_e) {
         // Ignore storage count error
@@ -107,9 +143,15 @@ export default async function handler(
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    const message =
+      error instanceof Error ? error.message : 'Internal Server Error';
     console.error('API /api/sync/data error:', error);
     const status = message.includes('Unauthorized') ? 401 : 500;
-    return res.status(status).json({ error: message, stack: error instanceof Error ? error.stack : undefined });
+    return res
+      .status(status)
+      .json({
+        error: message,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
   }
 }
