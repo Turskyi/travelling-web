@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Image from 'next/image';
 import '@/styles/globals.css'
 import type { AppProps } from 'next/app'
 import Link from 'next/link';
@@ -32,6 +33,40 @@ function AppShell({ children }: { children: ReactNode }) {
           <Link href="/terms">{t('terms')}</Link>
           <Link href="/account">{t('account')}</Link>
         </nav>
+        <div className="store-badges">
+          <div className="store-badge">
+            <span>{t('freeAppLabel')}</span>
+            <a
+              href="https://play.google.com/store/apps/details?id=ua.turskyi.travelling"
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('freeAndroidApp')}
+            >
+              <Image
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt=""
+                width={140}
+                height={54}
+              />
+            </a>
+          </div>
+          <div className="store-badge">
+            <span>{t('proAppLabel')}</span>
+            <a
+              href="https://play.google.com/store/apps/details?id=io.github.turskyi.travellingpro"
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('proAndroidApp')}
+            >
+              <Image
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt=""
+                width={140}
+                height={54}
+              />
+            </a>
+          </div>
+        </div>
         <label className="language-picker">
           <span>{t('language')}</span>
           <select

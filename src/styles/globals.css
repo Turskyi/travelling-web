@@ -57,6 +57,37 @@ a {
   color: #145c45;
 }
 
+.store-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.store-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.store-badge > span {
+  color: #60736c;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.store-badge a {
+  display: block;
+  line-height: 0;
+}
+
+.store-badge img {
+  display: block;
+  width: 126px;
+  height: auto;
+}
+
 .language-picker {
   display: flex;
   align-items: center;
@@ -103,12 +134,28 @@ a {
     overflow-x: auto;
   }
 
+  .brand {
+    order: 1;
+  }
+
+  .language-picker {
+    order: 2;
+  }
+
+  .store-badges {
+    order: 4;
+  }
+
   .site-header nav a {
     white-space: nowrap;
   }
 
   .language-picker {
     margin-left: auto;
+  }
+
+  .store-badge img {
+    width: 108px;
   }
 
   .app-shell main,
