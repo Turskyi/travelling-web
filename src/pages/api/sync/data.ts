@@ -74,18 +74,22 @@ export default async function handler(
         { merge: true },
       );
 
-      // 2. Write to users/{uid}/visited_countries (with id as String for TravellingPro compatibility)
+      // 2. Write to users/{uid}/visited_countries (deduplicated by normalized country name as doc ID)
       countries.forEach((country: any) => {
-        if (!country.id) return;
-        const countryId = String(country.id);
+        const countryName = country.name || country.title;
+        if (!countryName) return;
+        const docId = String(countryName)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '_');
         const userCountryRef = userRef
           .collection('visited_countries')
-          .doc(countryId);
+          .doc(docId);
 
         const countryData = {
-          id: String(country.id),
-          title: country.name || country.title || '',
-          shortName: country.shortName || country.name || '',
+          id: country.id || docId,
+          title: countryName,
+          shortName: country.shortName || countryName,
           flag: country.flag || '',
           isVisited: country.isVisited !== false,
           selfie: country.selfie || '',
