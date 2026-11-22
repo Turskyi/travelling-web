@@ -1,0 +1,41 @@
+name: Regression Tests & Build
+
+on:
+  push:
+    branches-ignore:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Run Regression Tests & Build Web App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (Node 22.x)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Type Checking
+        run: npx tsc --noEmit
+
+      - name: Run Regression Unit Tests
+        run: npm test
+
+      - name: Build Next.js App
+        run: npm run build
