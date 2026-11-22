@@ -132,7 +132,16 @@ export default async function handler(
 
       const countryName = String(cData.title || cData.name || cData.shortName || countryDoc.id).trim();
       const countryCode = String(cData.countryCode || '').toUpperCase();
-      const flag = String(cData.flag || '');
+      let flag = String(cData.flag || '');
+
+      if (!flag || flag.startsWith('http://') || flag.startsWith('https://') || flag.length > 8) {
+        if (countryCode.length === 2) {
+          const chars = countryCode.toUpperCase().split('');
+          flag = String.fromCodePoint(127397 + chars[0].charCodeAt(0), 127397 + chars[1].charCodeAt(0));
+        } else {
+          flag = '🏳️';
+        }
+      }
 
       const visitedAtVal = cData.visitedAt || cData.updatedAt;
       const visitedAt = visitedAtVal
