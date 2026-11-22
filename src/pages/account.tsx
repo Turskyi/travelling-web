@@ -7,8 +7,10 @@ import useAppLanguage from '@/hooks/useAppLanguage';
 import useTravelTracker from '@/hooks/useTravelTracker';
 import {
   auth,
+  browserLocalPersistence,
   getRedirectResult,
   googleProvider,
+  setPersistence,
   signInWithRedirect,
   signOut,
 } from '@/lib/firebaseClient';
@@ -54,6 +56,8 @@ interface CloudPayload {
   serverCityCount?: number;
   success?: boolean;
 }
+
+const SIGN_IN_PENDING_KEY = 'travelling.googleSignInPending';
 
 class AccountApiError extends Error {
   constructor(message: string, readonly status: number) {
@@ -150,11 +154,37 @@ export default function AccountPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthReady(true);
-    });
-    void getRedirectResult(auth).catch((error: unknown) => {
+      if (currentUser) {
+        window.sessionStorage.removeItem(SIGN_IN_PENDING_KEY);
+        setStatus((current) => current === 'loading' ? 'idle' : current);
+        setMessage('');
+      }
+    }, (error) => {
+      setAuthReady(true);
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : t('accountSignInError'));
+      setMessage(error.message || t('accountSignInError'));
     });
+    void getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          window.sessionStorage.removeItem(SIGN_IN_PENDING_KEY);
+          setUser(result.user);
+          setAuthReady(true);
+          setStatus('idle');
+          setMessage('');
+        } else if (
+          window.sessionStorage.getItem(SIGN_IN_PENDING_KEY) &&
+          !auth.currentUser
+        ) {
+          window.sessionStorage.removeItem(SIGN_IN_PENDING_KEY);
+          setStatus('error');
+          setMessage(t('redirectSignInIncomplete'));
+        }
+      })
+      .catch((error: unknown) => {
+        setStatus('error');
+        setMessage(error instanceof Error ? error.message : t('accountSignInError'));
+      });
     return () => unsubscribe();
   }, [t]);
 
@@ -231,8 +261,11 @@ export default function AccountPage() {
     setStatus('loading');
     setMessage('');
     try {
+      await setPersistence(auth, browserLocalPersistence);
+      window.sessionStorage.setItem(SIGN_IN_PENDING_KEY, '1');
       await signInWithRedirect(auth, googleProvider);
     } catch (error) {
+      window.sessionStorage.removeItem(SIGN_IN_PENDING_KEY);
       setStatus('error');
       setMessage(error instanceof Error ? error.message : t('accountSignInError'));
     }
@@ -407,6 +440,17 @@ export default function AccountPage() {
           <>
             <div className={styles.accountRow}>
               <div>
+                {user.photoURL ? (
+                  // Google-hosted profile images are provided directly by Firebase Auth.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className={styles.avatar} src={user.photoURL} alt="" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className={styles.avatarFallback} aria-hidden="true">
+                    {(user.displayName || user.email || '?').trim().charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className={styles.accountIdentity}>
                 <span>{t('signedInAs')}</span>
                 <strong>{user.displayName || user.email || user.uid}</strong>
               </div>

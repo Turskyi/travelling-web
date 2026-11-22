@@ -51,6 +51,33 @@
   gap: 16px;
 }
 
+.accountIdentity {
+  flex: 1;
+}
+
+.avatar,
+.avatarFallback {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 50%;
+}
+
+.avatar {
+  display: block;
+  object-fit: cover;
+  background: #edf2ee;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: #e8f1eb;
+  color: #2a6847;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 .accountRow > div,
 .statusGrid > div {
   display: grid;

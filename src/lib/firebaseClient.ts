@@ -2,7 +2,9 @@ import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  browserLocalPersistence,
   getRedirectResult,
+  setPersistence,
   signInWithRedirect,
   signOut,
 } from 'firebase/auth';
@@ -12,7 +14,8 @@ const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'travelling-the
 
 const firebaseConfig = {
   apiKey: apiKey || '',
-  authDomain: `${projectId}.firebaseapp.com`,
+  authDomain:
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`,
   projectId,
   storageBucket: `${projectId}.appspot.com`,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
@@ -22,4 +25,10 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
-export { getRedirectResult, signInWithRedirect, signOut };
+export {
+  browserLocalPersistence,
+  getRedirectResult,
+  setPersistence,
+  signInWithRedirect,
+  signOut,
+};

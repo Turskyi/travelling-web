@@ -46,6 +46,11 @@ environment or deployment platform:
   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`,
   and `NEXT_PUBLIC_FIREBASE_APP_ID` can also be set for the Firebase app
   configuration.
+- On Safari/iOS, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to the app's own
+  hostname (for example, `travelling.turskyi.com`) to keep Firebase's redirect
+  handler same-site. The Next.js rewrite proxies `/__/auth/*` to the configured
+  Firebase project's default auth domain. Add the custom hostname under Firebase
+  Authentication's authorized domains and redeploy after setting this variable.
 - `FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON` (or the existing
   `FIREBASE_SERVICE_ACCOUNT_JSON` alias) is the server-only Firebase Admin
   service account JSON.

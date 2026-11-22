@@ -3,8 +3,10 @@ import PolicyPage from '@/components/PolicyPage';
 import styles from '@/styles/PolicyPage.module.css';
 import {
   auth,
+  browserLocalPersistence,
   getRedirectResult,
   googleProvider,
+  setPersistence,
   signInWithRedirect,
   signOut,
 } from '@/lib/firebaseClient';
@@ -31,6 +33,7 @@ export default function DeleteAccount() {
     try {
       setStatus('loading');
       setMessage('');
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithRedirect(auth, googleProvider);
     } catch (err) {
       setStatus('error');
