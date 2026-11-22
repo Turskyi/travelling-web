@@ -40,8 +40,25 @@ export default async function handler(
     if (req.method === 'GET') {
       const countriesSnap = await userRef.collection('visited_countries').get();
       const citiesSnap = await userRef.collection('cities').get();
+      const bucket = adminApp.storage().bucket();
 
-      const countries = countriesSnap.docs.map((doc) => doc.data());
+      const countries = await Promise.all(
+        countriesSnap.docs.map(async (doc) => {
+          const country = doc.data();
+          const objectPath = getSelfieObjectPath(country, bucket.name);
+          if (!objectPath) return country;
+
+          const file = bucket.file(objectPath);
+          const [exists] = await file.exists();
+          if (!exists) return { ...country, selfie: '' };
+
+          const [selfie] = await file.getSignedUrl({
+            action: 'read',
+            expires: Date.now() + 5 * 60 * 1000,
+          });
+          return { ...country, selfie };
+        }),
+      );
       const cities = citiesSnap.docs.map((doc) => doc.data());
 
       return res.status(200).json({ countries, cities });
@@ -61,6 +78,7 @@ export default async function handler(
       }
 
       const batch = db.batch();
+      const bucketName = adminApp.storage().bucket().name;
 
       // 0. Delete countries in Firestore that were removed locally
       const existingCountriesSnap = await userRef
@@ -140,16 +158,19 @@ export default async function handler(
           isVisited: country.isVisited !== false,
           updatedAt: now,
         };
+        if (typeof country.selfie === 'string' && country.selfie) {
+          const objectPath = getSelfieObjectPath(country, bucketName);
+          countryData.selfie = objectPath || country.selfie;
+          if (objectPath) {
+            countryData.selfieName = objectPath.slice('selfies/'.length);
+          }
+        }
         if (typeof country.countryCode === 'string') {
           countryData.countryCode = country.countryCode;
         }
         if (typeof country.visitedAt === 'string') {
           countryData.visitedAt = country.visitedAt;
         }
-        if (typeof country.selfie === 'string' && country.selfie) {
-          countryData.selfie = country.selfie;
-        }
-
         batch.set(userCountryRef, countryData, { merge: true });
       });
 
@@ -176,7 +197,6 @@ export default async function handler(
         .get();
       const updatedCitiesSnap = await userRef.collection('cities').get();
 
-      const bucketName = adminApp.storage().bucket().name;
       const serverSelfieCount = updatedCountriesSnap.docs.filter((doc) =>
         Boolean(getSelfieObjectPath(doc.data(), bucketName)),
       ).length;
