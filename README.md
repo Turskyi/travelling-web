@@ -60,7 +60,9 @@ environment or deployment platform:
 - `CRON_SECRET` is required to authorize the scheduled cleanup endpoint.
 - `FREE_ACCESS_FOR_ALL` controls the existing temporary sync-access setting.
   It is disabled by default; set it to `true` only when intentionally granting
-  temporary sync access to all authenticated users.
+  temporary sync access to all authenticated users. The authenticated
+  `/api/subscription/status` response exposes this effective boolean to native
+  clients; redeploy the backend after changing code or the environment value.
 
 Do not commit credentials or expose server-only service account values through
 `NEXT_PUBLIC_` variables. No new environment variables are required for local

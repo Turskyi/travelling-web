@@ -14,12 +14,14 @@ export default async function handler(
     const decodedToken = await verifyAuthToken(req);
     const uid = decodedToken.uid;
     const db = getFirebaseAdmin().firestore();
+    const freeAccessForAll = process.env.FREE_ACCESS_FOR_ALL === 'true';
 
     const isAdmin = isAdminUser(decodedToken);
     if (isAdmin) {
       const backupDoc = await db.collection('user_backups').doc(uid).get();
       return res.status(200).json({
         active: true,
+        freeAccessForAll,
         expiryTimeMs: Date.now() + 365 * 24 * 60 * 60 * 1000,
         state: 'SUBSCRIPTION_STATE_ACTIVE',
         hasBackup: backupDoc.exists,
@@ -32,6 +34,7 @@ export default async function handler(
     if (!entitlementDoc.exists) {
       return res.status(200).json({
         active: false,
+        freeAccessForAll,
         expiryTimeMs: 0,
         state: 'SUBSCRIPTION_STATE_UNSPECIFIED',
         hasBackup: false,
@@ -48,6 +51,7 @@ export default async function handler(
 
     return res.status(200).json({
       active,
+      freeAccessForAll,
       expiryTimeMs,
       state: data?.state || 'SUBSCRIPTION_STATE_UNSPECIFIED',
       hasBackup: backupDoc.exists,
