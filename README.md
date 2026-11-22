@@ -1,5 +1,6 @@
 [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct-single.svg)](https://stand-with-ukraine.pp.ua)
 ![Vercel Deploy](https://therealsujitk-vercel-badge.vercel.app/?app=travelling-web&style=plastic)
+[![Regression Tests & Build](https://github.com/Turskyi/travelling-web/actions/workflows/regression_tests.yml/badge.svg)](https://github.com/Turskyi/travelling-web/actions/workflows/regression_tests.yml)
 <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/Turskyi/travelling-web">
 
 # Travelling

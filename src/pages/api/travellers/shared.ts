@@ -131,15 +131,22 @@ export default async function handler(
       if (!isVisited) continue;
 
       const countryName = String(cData.title || cData.name || cData.shortName || countryDoc.id).trim();
-      const countryCode = String(cData.countryCode || '').toUpperCase();
-      let flag = String(cData.flag || '');
+      let countryCode = String(cData.countryCode || cData.code || '').toUpperCase();
+      if (!countryCode || countryCode.length !== 2) {
+        if (countryDoc.id.length === 2) {
+          countryCode = countryDoc.id.toUpperCase();
+        } else {
+          countryCode = countryDoc.id.slice(0, 2).toUpperCase();
+        }
+      }
 
+      let flag = String(cData.flag || '').trim();
       if (!flag || flag.startsWith('http://') || flag.startsWith('https://') || flag.length > 8) {
         if (countryCode.length === 2) {
           const chars = countryCode.toUpperCase().split('');
           flag = String.fromCodePoint(127397 + chars[0].charCodeAt(0), 127397 + chars[1].charCodeAt(0));
         } else {
-          flag = '🏳️';
+          flag = '🌍';
         }
       }
 
