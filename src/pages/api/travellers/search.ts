@@ -53,19 +53,22 @@ export default async function handler(
 
       const data = doc.data();
       const visibility = sanitizeVisibility(data.visibility);
-      const isVisible = data.isVisible !== false && visibility !== 'privateProfile';
       const friendCodes = Array.isArray(data.friendCodes)
         ? data.friendCodes.map((c: unknown) => sanitizeShareCode(c))
         : [];
 
       let isPermitted = false;
-      if (visibility === 'everyone' || isVisible) {
+      if (
+        visibility === 'everyone' ||
+        data.isVisible === true ||
+        (data.isVisible !== false && visibility !== 'privateProfile')
+      ) {
         isPermitted = true;
       } else if (visibility === 'friends') {
         isPermitted = Boolean(viewerShareCode && friendCodes.includes(viewerShareCode));
       }
 
-      console.log(`[API /api/travellers/search] Candidate id=${id}, name="${data.displayName || data.name}", visibility="${data.visibility}", isVisible=${data.isVisible}, computedVisibility=${visibility}, isPermitted=${isPermitted}`);
+      console.log(`[API /api/travellers/search] Candidate id=${id}, name="${data.displayName || data.name}", visibility="${data.visibility}", isVisible=${data.isVisible}, isPermitted=${isPermitted}`);
 
       if (!isPermitted) continue;
 
