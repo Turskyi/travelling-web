@@ -37,41 +37,22 @@ export default async function handler(
     const viewerData = viewerUserDoc.data() || {};
     const viewerShareCode = sanitizeShareCode(viewerData.shareCode) || String(viewerUid.slice(0, 8)).toUpperCase();
 
-    const candidatesMap = new Map<string, FirebaseFirestore.DocumentData>();
-
-    const publicUsersSnap = await db.collection('users')
-      .where('visibility', '==', 'everyone')
-      .limit(100)
-      .get();
-    for (const doc of publicUsersSnap.docs) {
-      candidatesMap.set(doc.id, doc.data());
-    }
-
-    if (viewerShareCode) {
-      const friendsUsersSnap = await db.collection('users')
-        .where('visibility', '==', 'friends')
-        .where('friendCodes', 'array-contains', viewerShareCode)
-        .limit(100)
-        .get();
-      for (const doc of friendsUsersSnap.docs) {
-        if (!candidatesMap.has(doc.id)) {
-          candidatesMap.set(doc.id, doc.data());
-        }
-      }
-    }
-
+    const usersSnap = await db.collection('users').limit(200).get();
     const results: TravellerSearchResult[] = [];
 
-    for (const [id, data] of candidatesMap.entries()) {
+    for (const doc of usersSnap.docs) {
+      const id = doc.id;
       if (id === viewerUid) continue;
 
+      const data = doc.data();
       const visibility = sanitizeVisibility(data.visibility);
+      const isVisible = data.isVisible !== false && visibility !== 'privateProfile';
       const friendCodes = Array.isArray(data.friendCodes)
         ? data.friendCodes.map((c: unknown) => sanitizeShareCode(c))
         : [];
 
       let isPermitted = false;
-      if (visibility === 'everyone') {
+      if (visibility === 'everyone' || isVisible) {
         isPermitted = true;
       } else if (visibility === 'friends') {
         isPermitted = Boolean(viewerShareCode && friendCodes.includes(viewerShareCode));
@@ -80,7 +61,7 @@ export default async function handler(
       if (!isPermitted) continue;
 
       const displayName = String(data.displayName || data.name || 'Traveller').trim();
-      const shareCode = sanitizeShareCode(data.shareCode);
+      const shareCode = sanitizeShareCode(data.shareCode) || String(id.slice(0, 8)).toUpperCase();
       const visitedCountryCount = typeof data.visitedCountryCount === 'number'
         ? data.visitedCountryCount
         : (typeof data.counter === 'number' ? data.counter : 0);

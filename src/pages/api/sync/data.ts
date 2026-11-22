@@ -89,13 +89,17 @@ export default async function handler(
       const currentIsVisible =
         typeof existingData?.isVisible === 'boolean'
           ? existingData.isVisible
-          : false;
+          : true;
+      const currentVisibility = existingData?.visibility || 'everyone';
+      const currentShareCode = existingData?.shareCode || String(uid.slice(0, 8)).toUpperCase();
 
       const visitedCount = countries.filter(
         (c) => c.isVisited !== false,
       ).length;
 
       const rawName =
+        existingData?.displayName ||
+        existingData?.name ||
         decodedToken.name ||
         (decodedToken.email ? decodedToken.email.split('@')[0] : 'Traveller');
 
@@ -103,10 +107,14 @@ export default async function handler(
         userRef,
         {
           id: uid,
+          displayName: rawName,
           name: rawName,
           avatar: decodedToken.picture || existingData?.avatar || '',
           counter: visitedCount,
+          visitedCountryCount: visitedCount,
           isVisible: currentIsVisible,
+          visibility: currentVisibility,
+          shareCode: currentShareCode,
           updatedAt: now,
         },
         { merge: true },
