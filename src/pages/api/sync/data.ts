@@ -149,17 +149,16 @@ export default async function handler(
         .get();
       const updatedCitiesSnap = await userRef.collection('cities').get();
 
-      // Count uploaded selfies in storage for verification count
-      let serverSelfieCount = 0;
-      try {
-        const bucket = adminApp.storage().bucket();
-        const [files] = await bucket.getFiles({
-          prefix: `cloud_sync/selfies/${uid}/`,
-        });
-        serverSelfieCount = files.length;
-      } catch (_e) {
-        // Ignore storage count error
-      }
+      const serverSelfieCount = updatedCountriesSnap.docs.filter((doc) => {
+        const data = doc.data();
+        return (
+          (typeof data.selfieName === 'string' &&
+            (/^\d{1,20}$/.test(data.selfieName) ||
+              /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(data.selfieName))) ||
+          (typeof data.selfie === 'string' &&
+            /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(data.selfie))
+        );
+      }).length;
 
       return res.status(200).json({
         success: true,

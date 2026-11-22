@@ -27,11 +27,16 @@ export default async function handler(
       for (const doc of visitedCountriesSnap.docs) {
         const data = doc.data();
         const selfieName = data.selfieName;
-        if (selfieName && typeof selfieName === 'string' && selfieName.trim() !== '') {
+        const selfiePath =
+          typeof selfieName === 'string' &&
+          (/^\d{1,20}$/.test(selfieName) || /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(selfieName))
+            ? `selfies/${selfieName}`
+            : typeof data.selfie === 'string' &&
+                /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(data.selfie)
+              ? data.selfie
+              : undefined;
+        if (selfiePath) {
           try {
-            const selfiePath = selfieName.startsWith(`cloud_sync/selfies/${uid}/`)
-              ? selfieName
-              : `selfies/${selfieName}`;
             await bucket.file(selfiePath).delete();
           } catch (_e) {
             // Ignore if specific file doesn't exist in storage
@@ -42,14 +47,7 @@ export default async function handler(
       // Ignore if user collection doesn't exist
     }
 
-    // 2. Delete Free app staged selfies under `cloud_sync/selfies/{uid}/`
-    try {
-      await bucket.deleteFiles({ prefix: `cloud_sync/selfies/${uid}/` });
-    } catch (_e) {
-      // Ignore if prefix has no files
-    }
-
-    // 3. Delete Firestore documents across Travelling apps
+    // 2. Delete Firestore documents across Travelling apps
     const collectionsToDelete = ['user_backups', 'users', 'rejections', 'entitlements'];
     for (const coll of collectionsToDelete) {
       const docRef = db.collection(coll).doc(uid);
@@ -59,7 +57,7 @@ export default async function handler(
       }
     }
 
-    // 4. Delete Firebase Auth user record LAST
+    // 3. Delete Firebase Auth user record LAST
     await adminApp.auth().deleteUser(uid);
 
     return res.status(200).json({

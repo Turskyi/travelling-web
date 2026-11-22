@@ -25,14 +25,6 @@ export default async function handler(
     const backupRef = db.collection('user_backups').doc(uid);
     await db.recursiveDelete(backupRef);
 
-    // 3. Delete staged Storage selfies if any
-    try {
-      const bucket = adminApp.storage().bucket();
-      await bucket.deleteFiles({ prefix: `cloud_sync/selfies/${uid}/` });
-    } catch (_e) {
-      // Storage files might not exist
-    }
-
     return res.status(200).json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';

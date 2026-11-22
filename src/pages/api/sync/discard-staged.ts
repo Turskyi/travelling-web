@@ -12,8 +12,7 @@ export default async function handler(
   try {
     const decodedToken = await verifyAuthToken(req);
     const uid = decodedToken.uid;
-    const adminApp = getFirebaseAdmin();
-    const db = adminApp.firestore();
+    const db = getFirebaseAdmin().firestore();
 
     // Check if entitlement is active. If active, do NOT discard backup!
     const entitlementDoc = await db.collection('entitlements').doc(uid).get();
@@ -24,14 +23,6 @@ export default async function handler(
     // Delete staged data in user_backups/{uid}
     const backupRef = db.collection('user_backups').doc(uid);
     await db.recursiveDelete(backupRef);
-
-    // Delete staged Storage selfies
-    try {
-      const bucket = adminApp.storage().bucket();
-      await bucket.deleteFiles({ prefix: `cloud_sync/selfies/${uid}/` });
-    } catch (_e) {
-      // Ignore if files don't exist
-    }
 
     return res.status(200).json({ success: true });
   } catch (error) {

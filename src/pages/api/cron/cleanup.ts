@@ -36,15 +36,7 @@ export default async function handler(
       const data = doc.data();
       const stagedAt = data.stagedAt || 0;
       if (now - stagedAt > THIRTY_DAYS_MS) {
-        const uid = doc.id;
         await db.recursiveDelete(doc.ref);
-        try {
-          await adminApp.storage().bucket().deleteFiles({
-            prefix: `cloud_sync/selfies/${uid}/`,
-          });
-        } catch (_e) {
-          // Ignore
-        }
         cleanedStaged++;
       }
     }
@@ -66,13 +58,6 @@ export default async function handler(
         const backupDoc = await backupRef.get();
         if (backupDoc.exists) {
           await db.recursiveDelete(backupRef);
-          try {
-            await adminApp.storage().bucket().deleteFiles({
-              prefix: `cloud_sync/selfies/${uid}/`,
-            });
-          } catch (_e) {
-            // Ignore
-          }
           cleanedExpired++;
         }
       }

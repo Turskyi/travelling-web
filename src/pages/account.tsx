@@ -35,6 +35,7 @@ interface CloudCountry {
   isVisited?: boolean;
   updatedAt?: number;
   selfie?: string;
+  selfieName?: string;
 }
 
 interface CloudCity {
@@ -136,6 +137,23 @@ function cloudSignature(backup: CloudBackup) {
       .map((entry) => ({ ...entry, cities: entry.cities.sort() }))
       .sort((first, second) => first.name.localeCompare(second.name)),
   );
+}
+
+function getCloudSelfiePath(country: CloudCountry): string | undefined {
+  const selfieName = country.selfieName;
+  if (
+    typeof selfieName === 'string' &&
+    (/^\d{1,20}$/.test(selfieName) || /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(selfieName))
+  ) {
+    return `selfies/${selfieName}`;
+  }
+  if (
+    typeof country.selfie === 'string' &&
+    /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(country.selfie)
+  ) {
+    return country.selfie;
+  }
+  return undefined;
 }
 
 export default function AccountPage() {
@@ -365,14 +383,11 @@ export default function AccountPage() {
           flag: cloudCountry.flag || country.flags.svg || country.flags.png,
           isVisited: cloudCountry.isVisited !== false,
           cities: [],
-          selfieCloudPath:
-            typeof cloudCountry.selfie === 'string' &&
-            cloudCountry.selfie.startsWith('cloud_sync/selfies/')
-              ? cloudCountry.selfie
-              : undefined,
+          selfieCloudPath: getCloudSelfiePath(cloudCountry),
         },
       });
     }
+
     for (const cloudCity of cloudBackup.cities) {
       const parent = typeof cloudCity.parentId === 'number'
         ? matched.get(cloudCity.parentId)
