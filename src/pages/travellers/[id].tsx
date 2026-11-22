@@ -197,6 +197,7 @@ export default function TravellerProfilePage() {
                   (city) => city.parentId === country.id,
                 );
                 const isExpanded = Boolean(expandedCountries[country.id]);
+                const isFlagUrl = typeof country.flag === 'string' && country.flag.startsWith('http');
 
                 return (
                   <div key={country.id || country.shortName} className={styles.countryCard}>
@@ -213,9 +214,24 @@ export default function TravellerProfilePage() {
                       }}
                     >
                       <div className={styles.countryMain}>
-                        <span className={styles.countryFlag} role="img" aria-label={country.name}>
-                          {country.flag || '🏳️'}
-                        </span>
+                        {isFlagUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={country.flag}
+                            alt=""
+                            style={{
+                              width: '40px',
+                              height: '28px',
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          />
+                        ) : (
+                          <span className={styles.countryFlag} role="img" aria-label={country.name}>
+                            {country.flag || '🏳️'}
+                          </span>
+                        )}
                         <span className={styles.countryName}>{country.name}</span>
                       </div>
                       {countryCities.length > 0 && (
