@@ -32,17 +32,24 @@ export default async function handler(
     const db = adminApp.firestore();
 
     const queryStr = String(req.query.q || req.query.namePrefix || '').trim().slice(0, 50);
+    console.log(`[API /api/travellers/search] viewerUid=${viewerUid}, query="${queryStr}"`);
 
     const viewerUserDoc = await db.collection('users').doc(viewerUid).get();
     const viewerData = viewerUserDoc.data() || {};
     const viewerShareCode = sanitizeShareCode(viewerData.shareCode) || String(viewerUid.slice(0, 8)).toUpperCase();
+    console.log(`[API /api/travellers/search] viewerShareCode=${viewerShareCode}`);
 
     const usersSnap = await db.collection('users').limit(200).get();
+    console.log(`[API /api/travellers/search] Fetched ${usersSnap.size} user documents from Firestore.`);
+
     const results: TravellerSearchResult[] = [];
 
     for (const doc of usersSnap.docs) {
       const id = doc.id;
-      if (id === viewerUid) continue;
+      if (id === viewerUid) {
+        console.log(`[API /api/travellers/search] Skipping self (id=${id})`);
+        continue;
+      }
 
       const data = doc.data();
       const visibility = sanitizeVisibility(data.visibility);
@@ -57,6 +64,8 @@ export default async function handler(
       } else if (visibility === 'friends') {
         isPermitted = Boolean(viewerShareCode && friendCodes.includes(viewerShareCode));
       }
+
+      console.log(`[API /api/travellers/search] Candidate id=${id}, name="${data.displayName || data.name}", visibility="${data.visibility}", isVisible=${data.isVisible}, computedVisibility=${visibility}, isPermitted=${isPermitted}`);
 
       if (!isPermitted) continue;
 
@@ -79,6 +88,7 @@ export default async function handler(
     }
 
     results.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    console.log(`[API /api/travellers/search] Returning ${results.length} travellers.`);
 
     return res.status(200).json({ travellers: results });
   } catch (error) {
