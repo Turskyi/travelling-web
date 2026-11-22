@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirebaseAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
+import { getSelfieObjectPath } from '@/lib/selfieObjectPath';
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,15 +27,7 @@ export default async function handler(
 
       for (const doc of visitedCountriesSnap.docs) {
         const data = doc.data();
-        const selfieName = data.selfieName;
-        const selfiePath =
-          typeof selfieName === 'string' &&
-          (/^\d{1,20}$/.test(selfieName) || /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(selfieName))
-            ? `selfies/${selfieName}`
-            : typeof data.selfie === 'string' &&
-                /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(data.selfie)
-              ? data.selfie
-              : undefined;
+        const selfiePath = getSelfieObjectPath(data, bucket.name);
         if (selfiePath) {
           try {
             await bucket.file(selfiePath).delete();

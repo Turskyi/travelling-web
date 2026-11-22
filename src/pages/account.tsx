@@ -153,6 +153,21 @@ function getCloudSelfiePath(country: CloudCountry): string | undefined {
   ) {
     return country.selfie;
   }
+  if (typeof country.selfie === 'string') {
+    try {
+      const selfieUrl = new URL(country.selfie);
+      const storageObject = decodeURIComponent(selfieUrl.pathname.split('/o/')[1] || '');
+      if (
+        selfieUrl.protocol === 'https:' &&
+        selfieUrl.hostname === 'firebasestorage.googleapis.com' &&
+        /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(storageObject)
+      ) {
+        return storageObject;
+      }
+    } catch {
+      return undefined;
+    }
+  }
   return undefined;
 }
 

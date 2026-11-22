@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirebaseAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
 import { isAdminUser } from '@/lib/adminAuth';
+import { getSelfieObjectPath } from '@/lib/selfieObjectPath';
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -14,25 +15,6 @@ interface SelfieRequest {
 
 function countryDocumentId(name: string) {
   return name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 120);
-}
-
-function selfieObjectPath(countryData: FirebaseFirestore.DocumentData) {
-  const legacyName = countryData.selfieName;
-  if (
-    typeof legacyName === 'string' &&
-    (/^\d{1,20}$/.test(legacyName) || /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(legacyName))
-  ) {
-    return `selfies/${legacyName}`;
-  }
-
-  const selfiePath = countryData.selfie;
-  if (
-    typeof selfiePath === 'string' &&
-    /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(selfiePath)
-  ) {
-    return selfiePath;
-  }
-  return undefined;
 }
 
 async function findCountryDocument(
@@ -92,6 +74,7 @@ export default async function handler(
     const entitlement = (await db.collection('entitlements').doc(uid).get()).data();
     const isEntitled =
       isAdminUser(decodedToken) ||
+      process.env.FREE_ACCESS_FOR_ALL === 'true' ||
       (entitlement?.active === true && Number(entitlement.expiryTimeMs) > Date.now());
     if (req.method === 'POST' && !isEntitled) {
       return res.status(403).json({ error: 'An active cloud backup subscription is required to upload selfies.' });
@@ -117,7 +100,9 @@ export default async function handler(
 
     if (req.method === 'GET') {
       const countryData = countryDoc?.data();
-      const objectPath = countryData ? selfieObjectPath(countryData) : undefined;
+      const objectPath = countryData
+        ? getSelfieObjectPath(countryData, bucket.name)
+        : undefined;
       if (!objectPath) {
         return res.status(404).json({ error: 'No cloud selfie is saved for this country.' });
       }
@@ -130,7 +115,9 @@ export default async function handler(
 
     if (req.method === 'DELETE') {
       const countryData = countryDoc?.data();
-      const objectPath = countryData ? selfieObjectPath(countryData) : undefined;
+      const objectPath = countryData
+        ? getSelfieObjectPath(countryData, bucket.name)
+        : undefined;
       if (objectPath) {
         await bucket.file(objectPath).delete({ ignoreNotFound: true });
       }
@@ -158,7 +145,7 @@ export default async function handler(
     const selfieName = `${Date.now()}_${uid}.${fileExtension(mimeType)}`;
     const selfiePath = `selfies/${selfieName}`;
     const previousSelfiePath = countryDoc
-      ? selfieObjectPath(countryDoc.data() || {})
+      ? getSelfieObjectPath(countryDoc.data() || {}, bucket.name)
       : undefined;
     const file = bucket.file(selfiePath);
     await file.save(image, {

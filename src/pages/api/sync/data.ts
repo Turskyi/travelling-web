@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getFirebaseAdmin, verifyAuthToken } from '@/lib/firebaseAdmin';
 import { isAdminUser } from '@/lib/adminAuth';
+import { getSelfieObjectPath } from '@/lib/selfieObjectPath';
 
 export default async function handler(
   req: NextApiRequest,
@@ -119,6 +120,12 @@ export default async function handler(
           isVisited: country.isVisited !== false,
           updatedAt: now,
         };
+        if (typeof country.countryCode === 'string') {
+          countryData.countryCode = country.countryCode;
+        }
+        if (typeof country.visitedAt === 'string') {
+          countryData.visitedAt = country.visitedAt;
+        }
         if (typeof country.selfie === 'string' && country.selfie) {
           countryData.selfie = country.selfie;
         }
@@ -149,16 +156,10 @@ export default async function handler(
         .get();
       const updatedCitiesSnap = await userRef.collection('cities').get();
 
-      const serverSelfieCount = updatedCountriesSnap.docs.filter((doc) => {
-        const data = doc.data();
-        return (
-          (typeof data.selfieName === 'string' &&
-            (/^\d{1,20}$/.test(data.selfieName) ||
-              /^[A-Za-z0-9_-]+\.(jpg|png|webp)$/.test(data.selfieName))) ||
-          (typeof data.selfie === 'string' &&
-            /^selfies\/[A-Za-z0-9_-]+(?:\.(jpg|png|webp))?$/.test(data.selfie))
-        );
-      }).length;
+      const bucketName = adminApp.storage().bucket().name;
+      const serverSelfieCount = updatedCountriesSnap.docs.filter((doc) =>
+        Boolean(getSelfieObjectPath(doc.data(), bucketName)),
+      ).length;
 
       return res.status(200).json({
         success: true,

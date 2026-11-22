@@ -46,11 +46,15 @@ environment or deployment platform:
   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`,
   and `NEXT_PUBLIC_FIREBASE_APP_ID` can also be set for the Firebase app
   configuration.
-- On Safari/iOS, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to the app's own
-  hostname (for example, `travelling.turskyi.com`) to keep Firebase's redirect
-  handler same-site. The Next.js rewrite proxies `/__/auth/*` to the configured
-  Firebase project's default auth domain. Add the custom hostname under Firebase
-  Authentication's authorized domains, and add
+- For local development, use the Firebase project's default auth domain:
+  `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com` (or omit this
+  variable). Add `localhost` to Firebase Authentication's authorized domains.
+  Do not use the deployed custom auth domain for localhost.
+- For Safari/iOS in production, set `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` to the
+  app's own hostname (for example, `travelling.turskyi.com`) to keep Firebase's
+  redirect handler same-site. The Next.js rewrite proxies `/__/auth/*` to the
+  configured Firebase project's default auth domain. Add the custom hostname
+  under Firebase Authentication's authorized domains, and add
   `https://travelling.turskyi.com/__/auth/handler` to the authorized redirect
   URIs for the Google OAuth web client used by Firebase Authentication. Replace
   the hostname if the deployed auth domain differs, then redeploy after setting
@@ -66,7 +70,8 @@ environment or deployment platform:
   It is disabled by default; set it to `true` only when intentionally granting
   temporary sync access to all authenticated users. The authenticated
   `/api/subscription/status` response exposes this effective boolean to native
-  clients; redeploy the backend after changing code or the environment value.
+  clients; it also grants API-based selfie upload. Redeploy the backend after
+  changing code or the environment value.
 
 Do not commit credentials or expose server-only service account values through
 `NEXT_PUBLIC_` variables. No new environment variables are required for local
