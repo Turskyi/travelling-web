@@ -19,7 +19,7 @@ export default function Home() {
   );
   const { history, ready, storageError, setVisited } = useTravelTracker();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<CountryFilter>('all');
+  const [filter, setFilter] = useState<CountryFilter | null>(null);
 
   const visitedCount = useMemo(
     () => (countries || []).filter((country) => history[country.cca3 || '']?.isVisited).length,
@@ -37,14 +37,16 @@ export default function Home() {
     ? new Intl.NumberFormat(locale).format(totalCountries)
     : '—';
   const totalLabel = t('ofCountries').replace('{count}', formattedTotal);
+  const activeFilter: CountryFilter =
+    filter || (ready && visitedCount > 0 ? 'visited' : 'all');
 
   const visibleCountries = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
     return (countries || [])
       .filter((country) => {
         const isVisited = Boolean(history[country.cca3 || '']?.isVisited);
-        if (filter === 'visited' && !isVisited) return false;
-        if (filter === 'notVisited' && isVisited) return false;
+        if (activeFilter === 'visited' && !isVisited) return false;
+        if (activeFilter === 'notVisited' && isVisited) return false;
         if (!normalizedQuery) return true;
         return [
           country.name.common,
@@ -58,7 +60,7 @@ export default function Home() {
           locale,
         ),
       );
-  }, [countries, filter, history, language, locale, query]);
+  }, [activeFilter, countries, history, language, locale, query]);
 
   return (
     <div className={styles.page}>
@@ -103,7 +105,7 @@ export default function Home() {
       <section className={styles.countrySection}>
         <div className={styles.sectionHeading}>
           <div>
-            <h2>{t('explore')}</h2>
+            <h2>{activeFilter === 'visited' ? t('visitedCountries') : t('explore')}</h2>
             <span>
               {countries
                 ? `${visibleCountries.length} / ${totalCountries}`
@@ -135,8 +137,8 @@ export default function Home() {
               <button
                 key={filterOption}
                 type="button"
-                className={filter === filterOption ? styles.activeFilter : ''}
-                aria-pressed={filter === filterOption}
+                className={activeFilter === filterOption ? styles.activeFilter : ''}
+                aria-pressed={activeFilter === filterOption}
                 onClick={() => setFilter(filterOption)}
               >
                 {label}
