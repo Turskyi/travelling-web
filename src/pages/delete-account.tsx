@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import PolicyPage from '@/components/PolicyPage';
 import styles from '@/styles/PolicyPage.module.css';
-import { auth, googleProvider, signInWithPopup, signOut } from '@/lib/firebaseClient';
+import {
+  auth,
+  getRedirectResult,
+  googleProvider,
+  signInWithRedirect,
+  signOut,
+} from '@/lib/firebaseClient';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 export default function DeleteAccount() {
@@ -14,6 +20,10 @@ export default function DeleteAccount() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
+    void getRedirectResult(auth).catch((err: unknown) => {
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : 'Google sign-in failed');
+    });
     return () => unsubscribe();
   }, []);
 
@@ -21,8 +31,7 @@ export default function DeleteAccount() {
     try {
       setStatus('loading');
       setMessage('');
-      await signInWithPopup(auth, googleProvider);
-      setStatus('idle');
+      await signInWithRedirect(auth, googleProvider);
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Google sign-in failed');

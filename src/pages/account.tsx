@@ -5,7 +5,13 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import useAppLanguage from '@/hooks/useAppLanguage';
 import useTravelTracker from '@/hooks/useTravelTracker';
-import { auth, googleProvider, signInWithPopup, signOut } from '@/lib/firebaseClient';
+import {
+  auth,
+  getRedirectResult,
+  googleProvider,
+  signInWithRedirect,
+  signOut,
+} from '@/lib/firebaseClient';
 import type { Country } from '@/models/Country';
 import type { TravelHistory, TravelRecord } from '@/models/TravelRecord';
 import * as CountryApi from '@/network/country-api';
@@ -145,8 +151,12 @@ export default function AccountPage() {
       setUser(currentUser);
       setAuthReady(true);
     });
+    void getRedirectResult(auth).catch((error: unknown) => {
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : t('accountSignInError'));
+    });
     return () => unsubscribe();
-  }, []);
+  }, [t]);
 
   const loadCloudState = useCallback(async () => {
     if (!user) return;
@@ -221,8 +231,7 @@ export default function AccountPage() {
     setStatus('loading');
     setMessage('');
     try {
-      await signInWithPopup(auth, googleProvider);
-      setStatus('idle');
+      await signInWithRedirect(auth, googleProvider);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : t('accountSignInError'));

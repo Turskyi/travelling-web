@@ -8,7 +8,7 @@ import useCountry from '@/hooks/useCountry';
 import useTravelTracker from '@/hooks/useTravelTracker';
 import { getCountryDisplayName } from '@/lib/countryLocalization';
 import { loadLocalSelfie, removeLocalSelfie, saveLocalSelfie } from '@/lib/selfieStorage';
-import { auth, googleProvider, signInWithPopup } from '@/lib/firebaseClient';
+import { auth, googleProvider, signInWithRedirect } from '@/lib/firebaseClient';
 import { onAuthStateChanged } from 'firebase/auth';
 import styles from '@/styles/Tracker.module.css';
 
@@ -213,8 +213,8 @@ export default function CountryDetailsPage() {
     try {
       let user = auth.currentUser;
       if (!user) {
-        await signInWithPopup(auth, googleProvider);
-        user = auth.currentUser;
+        await signInWithRedirect(auth, googleProvider);
+        return;
       }
       if (!user) {
         setSelfieMessage(t('selfieUploadNeedsSignIn'));
