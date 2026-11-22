@@ -10,6 +10,8 @@ export interface TravelRecord {
   flag: string;
   isVisited: boolean;
   cities: TravelCity[];
+  selfieId?: string;
+  selfieCloudPath?: string;
 }
 
 export type TravelHistory = Record<string, TravelRecord>;

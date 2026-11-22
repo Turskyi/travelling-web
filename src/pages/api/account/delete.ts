@@ -29,7 +29,10 @@ export default async function handler(
         const selfieName = data.selfieName;
         if (selfieName && typeof selfieName === 'string' && selfieName.trim() !== '') {
           try {
-            await bucket.file(`selfies/${selfieName}`).delete();
+            const selfiePath = selfieName.startsWith(`cloud_sync/selfies/${uid}/`)
+              ? selfieName
+              : `selfies/${selfieName}`;
+            await bucket.file(selfiePath).delete();
           } catch (_e) {
             // Ignore if specific file doesn't exist in storage
           }

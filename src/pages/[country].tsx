@@ -1,25 +1,53 @@
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ChangeEvent } from 'react';
 import { useRouter } from 'next/router';
 import useAppLanguage from '@/hooks/useAppLanguage';
 import useCountry from '@/hooks/useCountry';
 import useTravelTracker from '@/hooks/useTravelTracker';
 import { getCountryDisplayName } from '@/lib/countryLocalization';
+import { loadLocalSelfie, removeLocalSelfie, saveLocalSelfie } from '@/lib/selfieStorage';
+import { auth, googleProvider, signInWithPopup } from '@/lib/firebaseClient';
+import { onAuthStateChanged } from 'firebase/auth';
 import styles from '@/styles/Tracker.module.css';
+
+const MAX_SELFIE_SIZE = 2 * 1024 * 1024;
+const SELFIE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function fileToBase64(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Could not read the selected image.'));
+        return;
+      }
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error || new Error('Could not read the selected image.'));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function CountryDetailsPage() {
   const router = useRouter();
   const countryName = router.query.country?.toString() || '';
   const { country, countryLoading, countryError } = useCountry(countryName);
   const { language, t } = useAppLanguage();
-  const { history, ready, storageError, setVisited, addCity, updateCity, removeCity } =
+  const { history, ready, storageError, setVisited, addCity, updateCity, removeCity, setSelfie, clearSelfie } =
     useTravelTracker();
   const [cityName, setCityName] = useState('');
   const [cityMonth, setCityMonth] = useState('');
   const [editingCityId, setEditingCityId] = useState('');
   const [formError, setFormError] = useState('');
+  const [selfiePreview, setSelfiePreview] = useState('');
+  const [selectedSelfie, setSelectedSelfie] = useState<Blob | null>(null);
+  const [selfieMessage, setSelfieMessage] = useState('');
+  const [selfieMessageIsError, setSelfieMessageIsError] = useState(false);
+  const [selfieWorking, setSelfieWorking] = useState(false);
+  const [authUserId, setAuthUserId] = useState('');
 
   const countryKey = country?.cca3 || country?.name.common.toLowerCase() || '';
   const record = country ? history[countryKey] : undefined;
@@ -31,6 +59,68 @@ export default function CountryDetailsPage() {
     [country],
   );
   const cities = record?.cities || [];
+  const selfieId = record?.selfieId || '';
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (user) => setAuthUserId(user?.uid || ''));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    if (!ready || !selfieId) {
+      setSelfiePreview('');
+      return;
+    }
+
+    void loadLocalSelfie(selfieId)
+      .then((blob) => {
+        if (!active || !blob) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSelfiePreview(objectUrl);
+        setSelectedSelfie(blob);
+      })
+      .catch(() => {
+        if (active) setSelfieMessage(t('selfieLocalError'));
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [ready, selfieId, t]);
+
+  useEffect(() => {
+    if (!selfiePreview.startsWith('blob:')) return;
+    return () => URL.revokeObjectURL(selfiePreview);
+  }, [selfiePreview]);
+
+  useEffect(() => {
+    let active = true;
+    const user = auth.currentUser;
+    if (!record?.selfieCloudPath || !user || !country) return;
+    const params = new URLSearchParams({
+      countryCode: country.cca3 || country.name.common.toLowerCase(),
+      countryName: country.name.common,
+    });
+    void user.getIdToken()
+      .then((token) =>
+        fetch(`/api/sync/selfie?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      )
+      .then(async (response) => {
+        if (!response.ok) return;
+        const result = (await response.json()) as { url?: string };
+        if (active && result.url && !selfiePreview) setSelfiePreview(result.url);
+      })
+      .catch(() => {
+        if (active) setSelfieMessage(t('selfieUploadError'));
+      });
+    return () => {
+      active = false;
+    };
+  }, [authUserId, country, record?.selfieCloudPath, selfiePreview, t]);
 
   const submitCity = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -71,6 +161,147 @@ export default function CountryDetailsPage() {
 
   const deleteCity = (cityId: string) => {
     if (country && window.confirm(t('cityRemoveConfirm'))) removeCity(country, cityId);
+  };
+
+  const chooseSelfie = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !country) return;
+    setSelfieMessage('');
+    if (!SELFIE_TYPES.has(file.type)) {
+      setSelfieMessage(t('selfieFileTypeError'));
+      setSelfieMessageIsError(true);
+      return;
+    }
+    if (file.size > MAX_SELFIE_SIZE) {
+      setSelfieMessage(t('selfieFileSizeError'));
+      setSelfieMessageIsError(true);
+      return;
+    }
+
+    const id = selfieId || `country-selfie-${countryKey}`;
+    setSelfieWorking(true);
+    try {
+      await saveLocalSelfie(id, file);
+      const preview = URL.createObjectURL(file);
+      setSelfiePreview((current) => {
+        if (current.startsWith('blob:')) URL.revokeObjectURL(current);
+        return preview;
+      });
+      setSelectedSelfie(file);
+      setVisited(country, true);
+      setSelfie(country, id, record?.selfieCloudPath);
+      setSelfieMessage(t('selfieLocalSaved'));
+      setSelfieMessageIsError(false);
+    } catch (error) {
+      setSelfieMessage(error instanceof Error ? error.message : t('selfieLocalError'));
+      setSelfieMessageIsError(true);
+    } finally {
+      setSelfieWorking(false);
+    }
+  };
+
+  const uploadSelfie = async () => {
+    if (!country) return;
+    if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+      setSelfieMessage(t('firebaseNotConfigured'));
+      setSelfieMessageIsError(true);
+      return;
+    }
+    setSelfieWorking(true);
+    setSelfieMessage('');
+    try {
+      let user = auth.currentUser;
+      if (!user) {
+        await signInWithPopup(auth, googleProvider);
+        user = auth.currentUser;
+      }
+      if (!user) {
+        setSelfieMessage(t('selfieUploadNeedsSignIn'));
+        setSelfieMessageIsError(true);
+        return;
+      }
+      const image = selectedSelfie || (selfieId ? await loadLocalSelfie(selfieId) : undefined);
+      if (!image) {
+        setSelfieMessage(t('selfieLocalError'));
+        setSelfieMessageIsError(true);
+        return;
+      }
+      const imageBase64 = await fileToBase64(image);
+      const response = await fetch('/api/sync/selfie', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${await user.getIdToken()}`,
+        },
+        body: JSON.stringify({
+          countryCode: country.cca3 || country.name.common.toLowerCase(),
+          countryName: country.name.common,
+          flag: country.flag,
+          mimeType: image.type,
+          imageBase64,
+        }),
+      });
+      const result = (await response.json()) as { error?: string; selfieName?: string; url?: string };
+      if (!response.ok) {
+        if (response.status === 403) {
+          setSelfieMessage(t('selfieSubscriptionRequired'));
+        } else if (response.status === 413) {
+          setSelfieMessage(t('selfieFileSizeError'));
+        } else {
+          throw new Error(result.error || t('selfieUploadError'));
+        }
+        setSelfieMessageIsError(true);
+        return;
+      }
+      setSelfie(country, selfieId || `country-selfie-${countryKey}`, result.selfieName);
+      if (result.url) setSelfiePreview(result.url);
+      setSelectedSelfie(null);
+      setSelfieMessage(t('selfieUploadSuccess'));
+      setSelfieMessageIsError(false);
+    } catch (error) {
+      setSelfieMessage(error instanceof Error ? error.message : t('selfieUploadError'));
+      setSelfieMessageIsError(true);
+    } finally {
+      setSelfieWorking(false);
+    }
+  };
+
+  const deleteSelfie = async () => {
+    if (!country || !window.confirm(t('selfieDeleteConfirm'))) return;
+    const existingId = selfieId || `country-selfie-${countryKey}`;
+    setSelfieWorking(true);
+    setSelfieMessage('');
+    let cloudDeleteFailed = false;
+    try {
+      await removeLocalSelfie(existingId);
+      setSelectedSelfie(null);
+      setSelfiePreview((current) => {
+        if (current.startsWith('blob:')) URL.revokeObjectURL(current);
+        return '';
+      });
+      if (record?.selfieCloudPath && auth.currentUser) {
+        const params = new URLSearchParams({
+          countryCode: country.cca3 || country.name.common.toLowerCase(),
+          countryName: country.name.common,
+        });
+        const response = await fetch(`/api/sync/selfie?${params}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${await auth.currentUser.getIdToken()}` },
+        });
+        cloudDeleteFailed = !response.ok;
+      } else if (record?.selfieCloudPath) {
+        cloudDeleteFailed = true;
+      }
+      clearSelfie(country, cloudDeleteFailed);
+      setSelfieMessage(cloudDeleteFailed ? t('selfieCloudDeleteError') : t('selfieDeleted'));
+      setSelfieMessageIsError(cloudDeleteFailed);
+    } catch (error) {
+      setSelfieMessage(error instanceof Error ? error.message : t('selfieLocalError'));
+      setSelfieMessageIsError(true);
+    } finally {
+      setSelfieWorking(false);
+    }
   };
 
   return (
@@ -140,6 +371,74 @@ export default function CountryDetailsPage() {
             </section>
 
             {storageError && <p className={styles.errorBanner} role="alert">{t('storageError')}</p>}
+
+            <section className={styles.selfieSection}>
+              <div className={styles.cityHeading}>
+                <div>
+                  <h2>{t('selfie')}</h2>
+                  <p>{t('selfieTypes')}</p>
+                </div>
+              </div>
+              {selfiePreview && (
+                <Image
+                  src={selfiePreview}
+                  alt={t('selfiePreview').replace('{country}', displayName)}
+                  width={720}
+                  height={540}
+                  unoptimized
+                  className={styles.selfiePreview}
+                />
+              )}
+              <div className={styles.selfieControls}>
+                <label className={styles.primaryAction}>
+                  {selfiePreview ? t('replaceSelfie') : t('addSelfie')}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    onChange={chooseSelfie}
+                    disabled={!ready || selfieWorking || Boolean(storageError)}
+                    aria-label={selfiePreview ? t('replaceSelfie') : t('addSelfie')}
+                  />
+                </label>
+                {selfiePreview && (!record?.selfieCloudPath || selectedSelfie) && (
+                  <button
+                    type="button"
+                    className={styles.secondaryAction}
+                    onClick={() => void uploadSelfie()}
+                    disabled={selfieWorking || Boolean(storageError) || !ready}
+                  >
+                    {selfieWorking ? t('selfieUploading') : t('uploadSelfie')}
+                  </button>
+                )}
+                {selfiePreview && (
+                  <button
+                    type="button"
+                    className={styles.dangerAction}
+                    onClick={() => void deleteSelfie()}
+                    disabled={selfieWorking || Boolean(storageError)}
+                  >
+                    {t('deleteSelfie')}
+                  </button>
+                )}
+                {selfieWorking && <span role="status">{t('selfieUploading')}</span>}
+              </div>
+              {selfiePreview && (
+                <p className={styles.selfieStatus}>
+                  {record?.selfieCloudPath && !selectedSelfie
+                    ? t('selfieCloudSaved')
+                    : t('selfieLocalSaved')}
+                </p>
+              )}
+              {selfieMessage && (
+                <p
+                  className={selfieMessageIsError ? styles.errorBanner : styles.selfieStatus}
+                  role={selfieMessageIsError ? 'alert' : 'status'}
+                >
+                  {selfieMessage}
+                </p>
+              )}
+            </section>
 
             <section className={styles.citySection}>
               <div className={styles.cityHeading}>

@@ -111,15 +111,17 @@ export default async function handler(
           .collection('visited_countries')
           .doc(docId);
 
-        const countryData = {
+        const countryData: Record<string, unknown> = {
           id: Number(country.id) || 0,
           title: countryName,
           shortName: country.shortName || countryName,
           flag: country.flag || '',
           isVisited: country.isVisited !== false,
-          selfie: country.selfie || '',
           updatedAt: now,
         };
+        if (typeof country.selfie === 'string' && country.selfie) {
+          countryData.selfie = country.selfie;
+        }
 
         batch.set(userCountryRef, countryData, { merge: true });
       });

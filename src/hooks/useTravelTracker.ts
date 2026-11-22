@@ -15,6 +15,9 @@ function isTravelHistory(value: unknown): value is TravelHistory {
       typeof candidate.countryName === 'string' &&
       typeof candidate.flag === 'string' &&
       typeof candidate.isVisited === 'boolean' &&
+      (candidate.selfieId === undefined || typeof candidate.selfieId === 'string') &&
+      (candidate.selfieCloudPath === undefined ||
+        typeof candidate.selfieCloudPath === 'string') &&
       Array.isArray(candidate.cities) &&
       candidate.cities.every(
         (city) =>
@@ -150,6 +153,29 @@ export default function useTravelTracker() {
     [updateCountry],
   );
 
+  const setSelfie = useCallback(
+    (country: Country, selfieId: string, selfieCloudPath?: string) => {
+      updateCountry(country, (record) => ({
+        ...record,
+        isVisited: true,
+        selfieId,
+        selfieCloudPath,
+      }));
+    },
+    [updateCountry],
+  );
+
+  const clearSelfie = useCallback(
+    (country: Country, keepCloudCopy = false) => {
+      updateCountry(country, (record) => ({
+        ...record,
+        selfieId: undefined,
+        selfieCloudPath: keepCloudCopy ? record.selfieCloudPath : undefined,
+      }));
+    },
+    [updateCountry],
+  );
+
   const replaceHistory = useCallback((nextHistory: TravelHistory) => {
     setHistory(nextHistory);
   }, []);
@@ -162,6 +188,8 @@ export default function useTravelTracker() {
     addCity,
     updateCity,
     removeCity,
+    setSelfie,
+    clearSelfie,
     replaceHistory,
   };
 }

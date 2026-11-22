@@ -226,6 +226,100 @@
   background: #fff;
 }
 
+.selfieSection {
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid #e4e9e5;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.selfieSection .cityHeading {
+  margin-bottom: 18px;
+}
+
+.selfieSection .cityHeading p {
+  max-width: 620px;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.selfiePreview {
+  display: block;
+  width: min(100%, 560px);
+  max-height: 420px;
+  border-radius: 14px;
+  object-fit: contain;
+  object-position: left center;
+  background: #f1f4f1;
+}
+
+.selfieControls {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.selfieControls label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border-radius: 9px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.selfieControls input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.selfieControls label:focus-within {
+  outline: 2px solid #4a9b70;
+  outline-offset: 2px;
+}
+
+.selfieControls label:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.selfieControls > span {
+  color: #60736c;
+  font-size: 0.85rem;
+}
+
+.selfieStatus {
+  margin-top: 10px;
+  color: #39704e;
+  font-size: 0.85rem;
+}
+
+.dangerAction {
+  min-height: 38px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 12px;
+  background: #fbefed;
+  color: #9a483e;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.dangerAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .cityHeading {
   display: flex;
   align-items: center;
@@ -583,6 +677,10 @@
   }
 
   .citySection {
+    padding: 22px 18px;
+  }
+
+  .selfieSection {
     padding: 22px 18px;
   }
 

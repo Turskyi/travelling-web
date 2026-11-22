@@ -16,7 +16,10 @@ is deprecated and now returns an error, so the web app no longer relies on it.
 Firebase authentication,
 cloud sync and Google Play subscription API routes remain available for the
 account and migration features; local travel tracking does not depend on these
-services. Cloud backup is separate from local browser storage.
+services. Cloud backup is separate from local browser storage. Country selfies
+are saved locally in IndexedDB and can be uploaded to Firebase Storage for users
+with an active cloud backup entitlement; JPEG, PNG, and WebP files are limited
+to 2 MB. Firebase Storage must be enabled in the configured Firebase project.
 
 ## Getting Started
 

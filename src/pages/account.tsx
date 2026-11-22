@@ -26,6 +26,7 @@ interface CloudCountry {
   flag?: string;
   isVisited?: boolean;
   updatedAt?: number;
+  selfie?: string;
 }
 
 interface CloudCity {
@@ -322,6 +323,11 @@ export default function AccountPage() {
           flag: cloudCountry.flag || country.flags.svg || country.flags.png,
           isVisited: cloudCountry.isVisited !== false,
           cities: [],
+          selfieCloudPath:
+            typeof cloudCountry.selfie === 'string' &&
+            cloudCountry.selfie.startsWith('cloud_sync/selfies/')
+              ? cloudCountry.selfie
+              : undefined,
         },
       });
     }
