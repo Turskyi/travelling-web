@@ -32,14 +32,6 @@ export default async function handler(
       .get();
     if (!userMatchSnap.empty) {
       candidateDoc = userMatchSnap.docs[0];
-    } else {
-      const travellerMatchSnap = await db.collection('travellers')
-        .where('shareCode', '==', targetCode)
-        .limit(1)
-        .get();
-      if (!travellerMatchSnap.empty) {
-        candidateDoc = travellerMatchSnap.docs[0];
-      }
     }
 
     if (!candidateDoc) {
@@ -60,8 +52,7 @@ export default async function handler(
 
     if (visibility === 'friends') {
       const viewerUserDoc = await db.collection('users').doc(viewerUid).get();
-      const viewerTravellerDoc = await db.collection('travellers').doc(viewerUid).get();
-      const viewerData = viewerUserDoc.data() || viewerTravellerDoc.data() || {};
+      const viewerData = viewerUserDoc.data() || {};
       const viewerShareCode = sanitizeShareCode(viewerData.shareCode) || String(viewerUid.slice(0, 8)).toUpperCase();
 
       const candidateFriendCodes = Array.isArray(data.friendCodes)

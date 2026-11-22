@@ -41,12 +41,10 @@ export default async function handler(
     const db = adminApp.firestore();
 
     const userRef = db.collection('users').doc(uid);
-    const travellerRef = db.collection('travellers').doc(uid);
 
     if (req.method === 'GET') {
       const doc = await userRef.get();
-      const travellerDoc = await travellerRef.get();
-      const data = doc.data() || travellerDoc.data() || {};
+      const data = doc.data() || {};
 
       const shareCode = sanitizeShareCode(data.shareCode) || String(uid.slice(0, 8)).toUpperCase();
       const visibility = sanitizeVisibility(data.visibility);
@@ -97,10 +95,7 @@ export default async function handler(
       updatedAt: now,
     };
 
-    const batch = db.batch();
-    batch.set(userRef, profilePayload, { merge: true });
-    batch.set(travellerRef, profilePayload, { merge: true });
-    await batch.commit();
+    await userRef.set(profilePayload, { merge: true });
 
     return res.status(200).json({
       success: true,

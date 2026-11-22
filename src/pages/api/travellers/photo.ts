@@ -27,13 +27,12 @@ export default async function handler(
     }
 
     const travellerUserDoc = await db.collection('users').doc(travellerId).get();
-    const travellerProfileDoc = await db.collection('travellers').doc(travellerId).get();
 
-    if (!travellerUserDoc.exists && !travellerProfileDoc.exists) {
+    if (!travellerUserDoc.exists) {
       return res.status(404).json({ error: 'Traveller profile not found.' });
     }
 
-    const tData = travellerUserDoc.data() || travellerProfileDoc.data() || {};
+    const tData = travellerUserDoc.data() || {};
     const visibility = sanitizeVisibility(tData.visibility);
 
     if (travellerId !== viewerUid) {
@@ -43,8 +42,7 @@ export default async function handler(
 
       if (visibility === 'friends') {
         const viewerUserDoc = await db.collection('users').doc(viewerUid).get();
-        const viewerTravellerDoc = await db.collection('travellers').doc(viewerUid).get();
-        const viewerData = viewerUserDoc.data() || viewerTravellerDoc.data() || {};
+        const viewerData = viewerUserDoc.data() || {};
         const viewerShareCode = sanitizeShareCode(viewerData.shareCode) || String(viewerUid.slice(0, 8)).toUpperCase();
 
         const candidateFriendCodes = Array.isArray(tData.friendCodes)

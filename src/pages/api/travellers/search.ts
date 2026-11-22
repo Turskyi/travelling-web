@@ -34,8 +34,7 @@ export default async function handler(
     const queryStr = String(req.query.q || req.query.namePrefix || '').trim().slice(0, 50);
 
     const viewerUserDoc = await db.collection('users').doc(viewerUid).get();
-    const viewerTravellerDoc = await db.collection('travellers').doc(viewerUid).get();
-    const viewerData = viewerUserDoc.data() || viewerTravellerDoc.data() || {};
+    const viewerData = viewerUserDoc.data() || {};
     const viewerShareCode = sanitizeShareCode(viewerData.shareCode) || String(viewerUid.slice(0, 8)).toUpperCase();
 
     const candidatesMap = new Map<string, FirebaseFirestore.DocumentData>();
@@ -48,16 +47,6 @@ export default async function handler(
       candidatesMap.set(doc.id, doc.data());
     }
 
-    const publicTravellersSnap = await db.collection('travellers')
-      .where('visibility', '==', 'everyone')
-      .limit(100)
-      .get();
-    for (const doc of publicTravellersSnap.docs) {
-      if (!candidatesMap.has(doc.id)) {
-        candidatesMap.set(doc.id, doc.data());
-      }
-    }
-
     if (viewerShareCode) {
       const friendsUsersSnap = await db.collection('users')
         .where('visibility', '==', 'friends')
@@ -65,17 +54,6 @@ export default async function handler(
         .limit(100)
         .get();
       for (const doc of friendsUsersSnap.docs) {
-        if (!candidatesMap.has(doc.id)) {
-          candidatesMap.set(doc.id, doc.data());
-        }
-      }
-
-      const friendsTravellersSnap = await db.collection('travellers')
-        .where('visibility', '==', 'friends')
-        .where('friendCodes', 'array-contains', viewerShareCode)
-        .limit(100)
-        .get();
-      for (const doc of friendsTravellersSnap.docs) {
         if (!candidatesMap.has(doc.id)) {
           candidatesMap.set(doc.id, doc.data());
         }
