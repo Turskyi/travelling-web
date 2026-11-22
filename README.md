@@ -50,7 +50,11 @@ environment or deployment platform:
   hostname (for example, `travelling.turskyi.com`) to keep Firebase's redirect
   handler same-site. The Next.js rewrite proxies `/__/auth/*` to the configured
   Firebase project's default auth domain. Add the custom hostname under Firebase
-  Authentication's authorized domains and redeploy after setting this variable.
+  Authentication's authorized domains, and add
+  `https://travelling.turskyi.com/__/auth/handler` to the authorized redirect
+  URIs for the Google OAuth web client used by Firebase Authentication. Replace
+  the hostname if the deployed auth domain differs, then redeploy after setting
+  this variable.
 - `FIREBASE_ADMIN_SERVICE_ACCOUNT_JSON` (or the existing
   `FIREBASE_SERVICE_ACCOUNT_JSON` alias) is the server-only Firebase Admin
   service account JSON.
