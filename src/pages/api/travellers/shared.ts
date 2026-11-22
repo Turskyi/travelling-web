@@ -37,11 +37,13 @@ export default async function handler(
     const bucket = adminApp.storage().bucket();
 
     const targetCode = sanitizeShareCode(req.query.code);
+    console.log(`[API /api/travellers/shared] viewerUid=${viewerUid}, targetCode="${targetCode}"`);
+
     if (!targetCode) {
       return res.status(400).json({ error: 'A valid traveller code is required.' });
     }
 
-    let targetDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+    let targetDoc: FirebaseFirestore.DocumentSnapshot | undefined;
 
     const userMatchSnap = await db.collection('users')
       .where('shareCode', '==', targetCode)
@@ -49,17 +51,28 @@ export default async function handler(
       .get();
     if (!userMatchSnap.empty) {
       targetDoc = userMatchSnap.docs[0];
+    } else {
+      const allUsersSnap = await db.collection('users').limit(200).get();
+      for (const doc of allUsersSnap.docs) {
+        const docShareCode = sanitizeShareCode(doc.data().shareCode) || String(doc.id.slice(0, 8)).toUpperCase();
+        if (docShareCode === targetCode) {
+          targetDoc = doc;
+          break;
+        }
+      }
     }
 
-    if (!targetDoc) {
+    if (!targetDoc || !targetDoc.exists) {
+      console.log(`[API /api/travellers/shared] Traveller not found for code="${targetCode}"`);
       return res.status(404).json({ error: 'No traveller was found with that code.' });
     }
 
     const targetUid = targetDoc.id;
-    const data = targetDoc.data();
+    const data = targetDoc.data() || {};
     const visibility = sanitizeVisibility(data.visibility);
+    console.log(`[API /api/travellers/shared] Found targetUid=${targetUid}, visibility="${data.visibility}"`);
 
-    if (visibility === 'privateProfile') {
+    if (visibility === 'privateProfile' && data.isVisible !== true) {
       return res.status(403).json({ error: "This traveller hasn't shared their list." });
     }
 
@@ -82,6 +95,7 @@ export default async function handler(
     const targetRef = db.collection('users').doc(targetUid);
     const countriesSnap = await targetRef.collection('visited_countries').get();
     const citiesSnap = await targetRef.collection('cities').get();
+    console.log(`[API /api/travellers/shared] Fetched ${countriesSnap.size} countries and ${citiesSnap.size} cities for targetUid=${targetUid}`);
 
     const citiesByCountry = new Map<string, SharedCityVisit[]>();
     for (const cityDoc of citiesSnap.docs) {

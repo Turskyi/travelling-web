@@ -24,7 +24,7 @@ export default async function handler(
       return res.status(400).json({ error: 'A valid traveller code is required.' });
     }
 
-    let candidateDoc: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+    let candidateDoc: FirebaseFirestore.DocumentSnapshot | undefined;
 
     const userMatchSnap = await db.collection('users')
       .where('shareCode', '==', targetCode)
@@ -32,9 +32,18 @@ export default async function handler(
       .get();
     if (!userMatchSnap.empty) {
       candidateDoc = userMatchSnap.docs[0];
+    } else {
+      const allUsersSnap = await db.collection('users').limit(200).get();
+      for (const doc of allUsersSnap.docs) {
+        const docShareCode = sanitizeShareCode(doc.data().shareCode) || String(doc.id.slice(0, 8)).toUpperCase();
+        if (docShareCode === targetCode) {
+          candidateDoc = doc;
+          break;
+        }
+      }
     }
 
-    if (!candidateDoc) {
+    if (!candidateDoc || !candidateDoc.exists) {
       return res.status(404).json({ error: 'No traveller was found with that code.' });
     }
 
@@ -43,10 +52,10 @@ export default async function handler(
       return res.status(400).json({ error: "You can't add your own traveller code." });
     }
 
-    const data = candidateDoc.data();
+    const data = candidateDoc.data() || {};
     const visibility = sanitizeVisibility(data.visibility);
 
-    if (visibility === 'privateProfile') {
+    if (visibility === 'privateProfile' && data.isVisible !== true) {
       return res.status(403).json({ error: "This traveller hasn't shared their list." });
     }
 
