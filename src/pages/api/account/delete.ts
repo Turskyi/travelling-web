@@ -41,7 +41,7 @@ export default async function handler(
     }
 
     // 2. Delete Firestore documents across Travelling apps
-    const collectionsToDelete = ['user_backups', 'users', 'rejections', 'entitlements'];
+    const collectionsToDelete = ['user_backups', 'users', 'travellers', 'rejections', 'entitlements'];
     for (const coll of collectionsToDelete) {
       const docRef = db.collection(coll).doc(uid);
       const doc = await docRef.get();

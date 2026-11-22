@@ -77,7 +77,42 @@ Do not commit credentials or expose server-only service account values through
 `NEXT_PUBLIC_` variables. No new environment variables are required for local
 country tracking.
 
-Run `npm run lint`, `npx tsc --noEmit`, and `npm run build` to validate changes.
+Run `npm run lint`, `npx tsc --noEmit`, `npm run build`, and `npm test` to validate changes.
+
+## Traveller Features & Secure Backend Architecture
+
+The iOS app integrates with authenticated backend API endpoints (`/api/travellers/*`) using Firebase ID token verification and the Firebase Admin SDK to prevent permission errors ("Missing or insufficient permissions") and enforce strict server-side authorization:
+
+- **`/api/travellers/profile` (GET/POST/PUT)**: Manages signed-in user profiles (display name, share code, visibility setting `privateProfile` | `friends` | `everyone`, friend codes).
+- **`/api/travellers/search` (GET)**: Searches exposed public (`everyone`) or permitted `friends` profiles with server-enforced visibility checks.
+- **`/api/travellers/add-friend` (POST)**: Validates share codes and enforces friend-only visibility constraints.
+- **`/api/travellers/shared` (GET)**: Fetches a permitted traveller's actual synced countries, cities, visit dates, and photo availability.
+- **`/api/travellers/photo` (GET)**: Generates secure time-limited signed Storage URLs for viewing permitted country selfies.
+- **`/api/account/delete` (POST)**: Permanently cleans up user accounts, backups, entitlements, and profile records across `users`, `travellers`, `user_backups`, and `entitlements`, alongside Storage selfie files.
+
+### Recommended Firebase Firestore Security Rules
+
+To ensure clients cannot bypass visibility checks or access raw collection data directly, configure the following rules in the Firebase Console:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /travellers/{document=**} {
+      allow read, write: if false;
+    }
+    match /users/{document=**} {
+      allow read, write: if false;
+    }
+    match /entitlements/{document=**} {
+      allow read, write: if false;
+    }
+    match /user_backups/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+```
 
 ## Credits
 

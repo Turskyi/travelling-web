@@ -29,6 +29,7 @@ function AppShell({ children }: { children: ReactNode }) {
         <Link className="brand" href="/">{t('appName')}</Link>
         <nav aria-label={t('mainNavigation')}>
           <Link href="/">{t('explore')}</Link>
+          <Link href="/travellers">{t('travellers')}</Link>
           <Link href="/privacy">{t('privacy')}</Link>
           <Link href="/terms">{t('terms')}</Link>
           <Link href="/account">{t('account')}</Link>

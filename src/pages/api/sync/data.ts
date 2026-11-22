@@ -84,17 +84,29 @@ export default async function handler(
       });
 
       // 1. Update user profile document with counter and metadata for social network
+      const userDocSnap = await userRef.get();
+      const existingData = userDocSnap.data();
+      const currentIsVisible =
+        typeof existingData?.isVisible === 'boolean'
+          ? existingData.isVisible
+          : false;
+
       const visitedCount = countries.filter(
         (c) => c.isVisited !== false,
       ).length;
+
+      const rawName =
+        decodedToken.name ||
+        (decodedToken.email ? decodedToken.email.split('@')[0] : 'Traveller');
+
       batch.set(
         userRef,
         {
           id: uid,
-          name: decodedToken.name || decodedToken.email || 'Traveller',
-          avatar: decodedToken.picture || '',
+          name: rawName,
+          avatar: decodedToken.picture || existingData?.avatar || '',
           counter: visitedCount,
-          isVisible: true,
+          isVisible: currentIsVisible,
           updatedAt: now,
         },
         { merge: true },
